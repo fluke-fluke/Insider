@@ -1,23 +1,223 @@
-// words.js
-const wordList = [
-    "ภูเขาไฟฟูจิ",
-    "เครื่องบิน",
-    "รถไฟใต้ดิน",
-    "แกงเขียวหวาน",
-    "ไดโนเสาร์",
-    "สมาร์ทโฟน",
-    "ต้มยำกุ้ง",
-    "หอไอเฟล",
-    "ไมโครเวฟ",
-    "เซเว่นอีเลฟเว่น",
-    "โน้ตบุ๊ก",
-    "พัดลมไอเย็น",
-    "แปรงสีฟัน",
-    "สวนสนุก",
-    "หมูกระทะ"
-];
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insider Online - 👁️</title>
+    <style>
+        :root { --primary: #222; --accent: #ff4757; --bg: #f4f4f4; --gm-color: #3498db; }
+        body { font-family: 'Kanit', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 420px; text-align: center; min-height: 500px; }
+        .hidden { display: none; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s; }
+        .btn-black { background: var(--primary); color: white; }
+        .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-start { background: #2ed573; color: white; font-size: 20px; }
+        .room-code-tag { font-size: 2rem; font-weight: bold; letter-spacing: 5px; color: var(--accent); margin: 10px 0; border: 2px solid #333; display: inline-block; padding: 0 15px; border-radius: 5px; }
+        .player-badge { background: #eee; padding: 8px 15px; margin: 5px; border-radius: 20px; display: inline-block; font-weight: bold; font-size: 14px; }
+        #timer { font-size: 4rem; font-weight: bold; margin: 20px 0; font-family: monospace; color: #333; }
+        .role-box { padding: 20px; border: 3px dashed var(--primary); margin: 20px 0; border-radius: 10px; background: #fffdf0; }
+        .word-reveal { color: var(--accent); font-size: 2rem; font-weight: bold; display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
 
-// ส่งออกตัวแปรเพื่อให้ไฟล์หลักใช้งานได้
-if (typeof module !== 'undefined') {
-    module.exports = wordList;
-}
+<div class="card">
+    <div id="home-screen">
+        <h1 style="font-size: 40px; margin-top: 0;">INSIDER 👁️</h1>
+        <input type="text" id="username" placeholder="กรอกชื่อของคุณ">
+        <input type="text" id="room-input" placeholder="รหัสห้อง 4 หลัก" maxlength="4">
+        <button class="btn-black" id="btn-create">สร้างห้อง (Host)</button>
+        <button class="btn-outline" id="btn-join">เข้าห้อง (Join)</button>
+    </div>
+
+    <div id="lobby-screen" class="hidden">
+        <p>รหัสห้อง: <span class="room-code-tag" id="display-code">----</span></p>
+        <hr>
+        <div id="player-list"></div>
+        <div id="host-controls" class="hidden">
+            <p>เลือก GM</p>
+            <select id="gm-select"></select>
+            <p>ตั้งเวลา</p>
+            <select id="time-select">
+                <option value="180">3 นาที</option>
+                <option value="300">5 นาที</option>
+            </select>
+            <button class="btn-start" id="btn-start-game">เริ่มเกม</button>
+        </div>
+        <p id="wait-msg">⌛ รอ Host เริ่มเกม...</p>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div id="timer">00:00</div>
+        <div class="role-box">
+            <p>บทบาทของคุณคือ</p>
+            <h2 id="my-role">...</h2>
+            <div id="secret-word" class="hidden">
+                <p>คำถามลับคือ: <span class="word-reveal" id="target-word">--</span></p>
+            </div>
+        </div>
+        <div id="host-game-controls" class="hidden">
+            <button class="btn-black" id="pause-btn">หยุดเวลา</button>
+            <button class="btn-outline" id="end-game-btn">จบเกม (เฉลย)</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBemaycCfIrcNWlnZPas_Y19UZJg_x7f64",
+        authDomain: "insider-2b1e8.firebaseapp.com",
+        databaseURL: "https://insider-2b1e8-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "insider-2b1e8",
+        storageBucket: "insider-2b1e8.firebasestorage.app",
+        messagingSenderId: "401183902279",
+        appId: "1:401183902279:web:e10be99798a90a69ce3f62"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const internalWords = ["โต๊ะ", "โทรศัพท์", "ภูเขาไฟ", "เครื่องบิน", "แมว", "อาหารญี่ปุ่น", "รองเท้า", "ตู้เย็น", "ส้มตำ", "โรงพยาบาล"];
+
+    let myName = "", currentRoom = "", isHost = false, timerInterval = null, isPaused = false, playersInRoom = [];
+
+    function showScreen(id) {
+        document.querySelectorAll('.card > div').forEach(div => div.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    document.getElementById('btn-create').onclick = async () => {
+        myName = document.getElementById('username').value.trim();
+        if (!myName) return alert("ใส่ชื่อด้วยจ้า");
+        isHost = true;
+        currentRoom = Math.floor(1000 + Math.random() * 9000).toString();
+        await set(ref(db, 'rooms/' + currentRoom), { status: 'waiting', host: myName, players: { [myName]: true }, showResult: false });
+        initRoomListener();
+    };
+
+    document.getElementById('btn-join').onclick = async () => {
+        myName = document.getElementById('username').value.trim();
+        currentRoom = document.getElementById('room-input').value.trim();
+        if (!myName || currentRoom.length < 4) return alert("เช็คชื่อและรหัสห้อง");
+        await update(ref(db, `rooms/${currentRoom}/players`), { [myName]: true });
+        initRoomListener();
+    };
+
+    function initRoomListener() {
+        onValue(ref(db, 'rooms/' + currentRoom), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            playersInRoom = data.players ? Object.keys(data.players) : [];
+            
+            document.getElementById('display-code').innerText = currentRoom;
+            document.getElementById('player-list').innerHTML = playersInRoom.map(p => `<span class="player-badge">${p}</span>`).join('');
+            
+            if (isHost) {
+                document.getElementById('host-controls').classList.remove('hidden');
+                document.getElementById('wait-msg').classList.add('hidden');
+                const select = document.getElementById('gm-select');
+                const oldVal = select.value;
+                select.innerHTML = playersInRoom.map(p => `<option value="${p}">${p}</option>`).join('');
+                if (playersInRoom.includes(oldVal)) select.value = oldVal;
+            }
+
+            // ระบบเช็ค Pop-up เฉลย (เด้งทุกคน)
+            if (data.showResult && data.status === 'playing') {
+                alert(`📢 จบเกมแล้ว!\n\nผู้บงการ (Insider) คือ: ✨ ${data.insider} ✨`);
+                update(ref(db, 'rooms/' + currentRoom), { status: 'waiting', showResult: false });
+            }
+
+            if (data.status === 'playing') renderGame(data);
+            if (data.status === 'waiting') {
+                showScreen('lobby-screen');
+                clearInterval(timerInterval);
+            }
+        });
+        onDisconnect(ref(db, `rooms/${currentRoom}/players/${myName}`)).remove();
+    }
+
+    document.getElementById('btn-start-game').onclick = () => {
+        const gm = document.getElementById('gm-select').value;
+        const voters = playersInRoom.filter(p => p !== gm);
+        if (voters.length < 1) return alert("ต้องมีคนทายอย่างน้อย 1 คนครับ");
+
+        const insider = voters[Math.floor(Math.random() * voters.length)];
+        const word = internalWords[Math.floor(Math.random() * internalWords.length)];
+        const time = parseInt(document.getElementById('time-select').value);
+
+        update(ref(db, 'rooms/' + currentRoom), {
+            status: 'playing', gm: gm, insider: insider, word: word, timeLeft: time, isPaused: false, showResult: false
+        });
+    };
+
+    function renderGame(data) {
+        showScreen('game-screen');
+        const roleDisplay = document.getElementById('my-role');
+        const secretWord = document.getElementById('secret-word');
+        document.getElementById('target-word').innerText = data.word;
+
+        if (myName === data.gm) {
+            roleDisplay.innerText = "ผู้ดำเนินเกม (GM) 🎙️";
+            roleDisplay.style.color = "#3498db";
+            secretWord.classList.remove('hidden');
+        } else if (myName === data.insider) {
+            roleDisplay.innerText = "ผู้บงการ (Insider) 👁️";
+            roleDisplay.style.color = "#ff4757";
+            secretWord.classList.remove('hidden');
+        } else {
+            roleDisplay.innerText = "คนทั่วไป (Commoner) 👤";
+            roleDisplay.style.color = "#222";
+            secretWord.classList.add('hidden');
+        }
+
+        if (isHost) {
+            document.getElementById('host-game-controls').classList.remove('hidden');
+            handleTimerHost(data.timeLeft);
+        }
+
+        onValue(ref(db, `rooms/${currentRoom}/isPaused`), (snap) => {
+            isPaused = snap.val();
+            document.getElementById('pause-btn').innerText = isPaused ? "จับเวลาต่อ" : "หยุดเวลา";
+        });
+        
+        if (!isHost) {
+            onValue(ref(db, `rooms/${currentRoom}/timeLeft`), (snap) => {
+                updateTimerUI(snap.val());
+            });
+        }
+    }
+
+    function handleTimerHost(seconds) {
+        let localTime = seconds;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!isPaused) {
+                localTime--;
+                update(ref(db, 'rooms/' + currentRoom), { timeLeft: localTime });
+                updateTimerUI(localTime);
+                if (localTime <= 0) {
+                    clearInterval(timerInterval);
+                    update(ref(db, 'rooms/' + currentRoom), { showResult: true });
+                }
+            }
+        }, 1000);
+    }
+
+    function updateTimerUI(seconds) {
+        const m = Math.floor(seconds / 60), s = seconds % 60;
+        document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    document.getElementById('pause-btn').onclick = () => update(ref(db, 'rooms/' + currentRoom), { isPaused: !isPaused });
+
+    // ปุ่มจบเกมของ Host
+    document.getElementById('end-game-btn').onclick = () => {
+        update(ref(db, 'rooms/' + currentRoom), { showResult: true });
+    };
+</script>
+</body>
+</html>
