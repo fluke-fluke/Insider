@@ -79,30 +79,20 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // --- 2. วาง CONFIG ของคุณที่นี่ ---
-    <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+    // --- 2. Firebase Configuration ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBemaycCfIrcNWlnZPas_Y19UZJg_x7f64",
+        authDomain: "insider-2b1e8.firebaseapp.com",
+        databaseURL: "https://insider-2b1e8-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "insider-2b1e8",
+        storageBucket: "insider-2b1e8.firebasestorage.app",
+        messagingSenderId: "401183902279",
+        appId: "1:401183902279:web:e10be99798a90a69ce3f62",
+        measurementId: "G-Q85KLTDE43"
+    };
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBemaycCfIrcNWlnZPas_Y19UZJg_x7f64",
-    authDomain: "insider-2b1e8.firebaseapp.com",
-    databaseURL: "https://insider-2b1e8-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "insider-2b1e8",
-    storageBucket: "insider-2b1e8.firebasestorage.app",
-    messagingSenderId: "401183902279",
-    appId: "1:401183902279:web:e10be99798a90a69ce3f62",
-    measurementId: "G-Q85KLTDE43"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
     // --- 3. ตัวแปรสถานะ ---
     let myName = "";
@@ -148,7 +138,7 @@
             const data = snapshot.val();
             if (!data) return;
 
-            playersInRoom = Object.keys(data.players);
+            playersInRoom = data.players ? Object.keys(data.players) : [];
             updateLobbyUI(data);
 
             if (data.status === 'playing') {
@@ -156,9 +146,10 @@
             } else if (data.status === 'waiting') {
                 showScreen('lobby-screen');
                 clearInterval(timerInterval);
+                document.getElementById('host-game-controls').classList.add('hidden');
+                document.getElementById('player-wait-control').classList.remove('hidden');
             }
         });
-        // เมื่อเน็ตหลุด ให้ลบชื่อออกจากห้อง
         onDisconnect(ref(db, `rooms/${currentRoom}/players/${myName}`)).remove();
     }
 
@@ -173,6 +164,9 @@
             const currentVal = select.value;
             select.innerHTML = playersInRoom.map(p => `<option value="${p}">${p}</option>`).join('');
             if (playersInRoom.includes(currentVal)) select.value = currentVal;
+        } else {
+            document.getElementById('host-controls').classList.add('hidden');
+            document.getElementById('wait-msg').classList.remove('hidden');
         }
     }
 
@@ -223,13 +217,11 @@
             handleTimerHost(data.timeLeft);
         }
 
-        // ฟังคำสั่งหยุดเวลาจาก Firebase
         onValue(ref(db, `rooms/${currentRoom}/isPaused`), (snap) => {
             isPaused = snap.val();
             document.getElementById('pause-btn').innerText = isPaused ? "จับเวลาต่อ" : "หยุดเวลา";
         });
         
-        // ฟังเวลาจาก Host (สำหรับลูกห้อง)
         if (!isHost) {
             onValue(ref(db, `rooms/${currentRoom}/timeLeft`), (snap) => {
                 updateTimerUI(snap.val());
@@ -245,7 +237,10 @@
                 localTime--;
                 update(ref(db, 'rooms/' + currentRoom), { timeLeft: localTime });
                 updateTimerUI(localTime);
-                if (localTime <= 0) endGame(playersInRoom);
+                if (localTime <= 0) {
+                    clearInterval(timerInterval);
+                    alert("หมดเวลา!");
+                }
             }
         }, 1000);
     }
@@ -267,7 +262,6 @@
             update(ref(db, 'rooms/' + currentRoom), { status: 'waiting' });
         }, { onlyOnce: true });
     };
-
 </script>
 </body>
 </html>
