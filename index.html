@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insider Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div id="home-screen">
+            <h1 class="title">Insider <span class="eye">👁️</span></h1>
+            
+            <div class="input-group">
+                <input type="text" id="username" placeholder="ใส่ชื่อ">
+                <button onclick="createRoom()" class="btn-main">สร้างห้อง</button>
+            </div>
+
+            <hr class="divider">
+
+            <div class="input-group">
+                <input type="text" id="room-code-input" placeholder="ใส่รหัส">
+                <button onclick="joinRoom()" class="btn-main">เข้าห้อง</button>
+            </div>
+        </div>
+
+        <div id="lobby-screen" class="hidden">
+            <div class="room-info">
+                <h2>รหัส: <span id="display-room-code">AB23</span></h2>
+            </div>
+            
+            <div class="player-list">
+                <div class="player">C</div>
+                <div class="player">D</div>
+                <div class="player">E</div>
+            </div>
+
+            <button onclick="startGame()" class="btn-start">เริ่มเกม</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

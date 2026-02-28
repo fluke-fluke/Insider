@@ -1,0 +1,75 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #fcfcfc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    text-align: center;
+    width: 320px;
+}
+
+.hidden { display: none; }
+
+.title {
+    font-size: 48px;
+    margin-bottom: 40px;
+}
+
+.input-group {
+    margin-bottom: 25px;
+}
+
+input {
+    width: 100%;
+    padding: 15px;
+    font-size: 24px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    box-sizing: border-box;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.btn-main, .btn-start {
+    width: 150px;
+    padding: 10px;
+    font-size: 18px;
+    border: 2px solid #333;
+    background: white;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.2s;
+}
+
+.btn-main:hover, .btn-start:hover {
+    background: #333;
+    color: white;
+}
+
+.divider {
+    margin: 30px 0;
+    border: 0.5px solid #eee;
+}
+
+/* Lobby Styles */
+.player-list {
+    margin: 40px 0;
+    font-size: 32px;
+}
+
+.player {
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+.room-info h2 {
+    font-size: 36px;
+    border: 2px solid #333;
+    padding: 10px;
+    display: inline-block;
+}
