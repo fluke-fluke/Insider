@@ -68,6 +68,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import internalWords from "./words.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBemaycCfIrcNWlnZPas_Y19UZJg_x7f64",
@@ -81,9 +82,33 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const internalWords = ["โต๊ะ", "โทรศัพท์", "ภูเขาไฟ", "เครื่องบิน", "แมว", "อาหารญี่ปุ่น", "รองเท้า", "ตู้เย็น", "ส้มตำ", "โรงพยาบาล"];
 
     let myName = "", currentRoom = "", isHost = false, timerInterval = null, isPaused = false, playersInRoom = [];
+
+    // Fisher-Yates shuffle — สุ่มกระจายดีกว่า Math.random() * length
+    function fisherYatesShuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            // ใช้ crypto.getRandomValues เพื่อความสุ่มที่แข็งแกร่งกว่า Math.random()
+            const buf = new Uint32Array(1);
+            crypto.getRandomValues(buf);
+            const j = buf[0] % (i + 1);
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    // สุ่มคำจาก words.js ด้วย crypto random
+    function pickRandomWord() {
+        const buf = new Uint32Array(1);
+        crypto.getRandomValues(buf);
+        return internalWords[buf[0] % internalWords.length];
+    }
+
+    // สุ่มเลือก 1 คนจาก array ด้วย Fisher-Yates (shuffle แล้วเอาคนแรก)
+    function pickRandomPlayer(arr) {
+        return fisherYatesShuffle(arr)[0];
+    }
 
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(div => div.classList.add('hidden'));
@@ -125,7 +150,6 @@
                 if (playersInRoom.includes(oldVal)) select.value = oldVal;
             }
 
-            // ระบบเช็ค Pop-up เฉลย (เด้งทุกคน)
             if (data.showResult && data.status === 'playing') {
                 alert(`📢 จบเกมแล้ว!\n\nผู้บงการ (Insider) คือ: ✨ ${data.insider} ✨`);
                 update(ref(db, 'rooms/' + currentRoom), { status: 'waiting', showResult: false });
@@ -145,8 +169,9 @@
         const voters = playersInRoom.filter(p => p !== gm);
         if (voters.length < 1) return alert("ต้องมีคนทายอย่างน้อย 1 คนครับ");
 
-        const insider = voters[Math.floor(Math.random() * voters.length)];
-        const word = internalWords[Math.floor(Math.random() * internalWords.length)];
+        // ใช้ Fisher-Yates + crypto สุ่ม Insider แทน Math.random() * length
+        const insider = pickRandomPlayer(voters);
+        const word = pickRandomWord();
         const time = parseInt(document.getElementById('time-select').value);
 
         update(ref(db, 'rooms/' + currentRoom), {
@@ -214,7 +239,6 @@
 
     document.getElementById('pause-btn').onclick = () => update(ref(db, 'rooms/' + currentRoom), { isPaused: !isPaused });
 
-    // ปุ่มจบเกมของ Host
     document.getElementById('end-game-btn').onclick = () => {
         update(ref(db, 'rooms/' + currentRoom), { showResult: true });
     };
