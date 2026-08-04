@@ -66,22 +66,23 @@
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-analytics.js";
     import internalWords from "./words.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyBemaycCfIrcNWlnZPas_Y19UZJg_x7f64",
-        authDomain: "insider-2b1e8.firebaseapp.com",
-        databaseURL: "https://insider-2b1e8-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "insider-2b1e8",
-        storageBucket: "insider-2b1e8.firebasestorage.app",
-        messagingSenderId: "401183902279",
-        appId: "1:401183902279:web:e10be99798a90a69ce3f62"
-    };
+    apiKey: "AIzaSyCMP-3SnWh685SnF374QyBx5WGXYjDJFUk",
+    authDomain: "insider-c7ba4.firebaseapp.com",
+    projectId: "insider-c7ba4",
+    storageBucket: "insider-c7ba4.firebasestorage.app",
+    messagingSenderId: "643300584021",
+    appId: "1:643300584021:web:d1637dde264e74f08682dc",
+    measurementId: "G-TZGPVT8BNK"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
 
     let myName = "", currentRoom = "", isHost = false, timerInterval = null, isPaused = false, playersInRoom = [];
 
